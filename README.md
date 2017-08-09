@@ -41,6 +41,9 @@ tmp/state.json       ... by hand!
 //Some jobs may be more complex. Might first create, then update on say...counter object. Might set field number= data value a. This would update the
 
 state is given to cli.js in the language-package
+
+
+
 =================================================================================================================================
 tmp/expression.js ....... example
 
@@ -52,13 +55,15 @@ insert(params);
 // ====================================================
 example job that User mcUserFace writes
 // =============================
+```js
 insert({
   db_name: 'abhishek_test', // db_name
   collection: "testy_things", // collection
   json_data: dataValue("patients") // valid JSON to insert
 });
+```
 // =============================
-
+```js
 const { db_name, collection, json_data } = expandReferences(params)(state);
 const { username, connectionString, port } = state.configuration;
 
@@ -84,9 +89,10 @@ MongoClient.connect(url, {
   });
 });
 
-
+```
 ----------------------------------------------------------
 // a salesforce job
+```js
 create("contact", fields(
 	field("name", dataValue("surname"))
 );
@@ -94,4 +100,5 @@ create("contact", fields(
 update("counter", field(
 	field("number", dataValue("a")
 ))
+```
 ----------------------------------------------------------
