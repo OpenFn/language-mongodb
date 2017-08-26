@@ -9,9 +9,7 @@ import {
 } from 'url';
 import base64 from 'base-64';
 import utf8 from 'utf8';
-import {
-  resumen
-} from './resumen.min.js';
+
 
 var parser = require('xml2json');
 var MongoClient = require('mongodb').MongoClient
