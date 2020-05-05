@@ -81,9 +81,13 @@ function disconnect(state) {
 }
 
 /**
- * Removes connection from the state.
+ * Inserts documents into a mongoDb collection
  * @example
- *  disconnect(state)
+ *  insertDocuments({
+ *    database: 'str',
+ *    collection: 'kids',
+ *    documents: [1,2,3]
+ *   });
  * @function
  * @param {object} params - Configuration for mongo
  * @returns {State}
