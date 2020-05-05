@@ -120,6 +120,44 @@ export function insertDocuments(params) {
   };
 }
 
+/**
+ * Find documents in a mongoDb collection
+ * @example
+ *  findDocuments({
+ *    database: 'str',
+ *    collection: 'cases',
+ *    query: {a:3}
+ *   });
+ * @function
+ * @param {object} params - Configuration for mongo
+ * @returns {State}
+ */
+export function findDocuments(params) {
+  return (state) => {
+    const { client } = state;
+
+    const { database, collection, query, callback } = expandReferences(params)(
+      state
+    );
+
+    const db = client.db(database);
+    const mCollection = db.collection(collection);
+
+    return new Promise((resolve, reject) => {
+      mCollection.find(query).toArray((err, docs) => {
+        if (err) {
+          reject(err);
+        } else {
+          console.log(`Found ${docs.length} documents in the collection`);
+          const nextState = composeNextState(state, docs);
+          if (callback) resolve(callback(nextState));
+          resolve(nextState);
+        }
+      });
+    });
+  };
+}
+
 export {
   field,
   fields,
