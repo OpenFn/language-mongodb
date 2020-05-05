@@ -1,97 +1,11 @@
-'use strict';
-
-Object.defineProperty(exports, "__esModule", {
-  value: true
-});
-exports.lastReferenceValue = exports.dataValue = exports.dataPath = exports.merge = exports.each = exports.alterState = exports.sourceValue = exports.fields = exports.field = undefined;
-
-var _extends = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; };
-
-exports.execute = execute;
-//%*So this session needs to be abstracted. What exactly are fetch2016, fetch2015
-exports.fetch2016 = fetch2016;
-exports.fetch2015 = fetch2015;
-
-var _languageCommon = require('language-common');
-
-Object.defineProperty(exports, 'field', {
-  enumerable: true,
-  get: function get() {
-    return _languageCommon.field;
-  }
-});
-Object.defineProperty(exports, 'fields', {
-  enumerable: true,
-  get: function get() {
-    return _languageCommon.fields;
-  }
-});
-Object.defineProperty(exports, 'sourceValue', {
-  enumerable: true,
-  get: function get() {
-    return _languageCommon.sourceValue;
-  }
-});
-Object.defineProperty(exports, 'alterState', {
-  enumerable: true,
-  get: function get() {
-    return _languageCommon.alterState;
-  }
-});
-Object.defineProperty(exports, 'each', {
-  enumerable: true,
-  get: function get() {
-    return _languageCommon.each;
-  }
-});
-Object.defineProperty(exports, 'merge', {
-  enumerable: true,
-  get: function get() {
-    return _languageCommon.merge;
-  }
-});
-Object.defineProperty(exports, 'dataPath', {
-  enumerable: true,
-  get: function get() {
-    return _languageCommon.dataPath;
-  }
-});
-Object.defineProperty(exports, 'dataValue', {
-  enumerable: true,
-  get: function get() {
-    return _languageCommon.dataValue;
-  }
-});
-Object.defineProperty(exports, 'lastReferenceValue', {
-  enumerable: true,
-  get: function get() {
-    return _languageCommon.lastReferenceValue;
-  }
-});
-
-var _url = require('url');
-
-var _base = require('base-64');
-
-var _base2 = _interopRequireDefault(_base);
-
-var _utf = require('utf8');
-
-var _utf2 = _interopRequireDefault(_utf);
-
-function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
-
-var request = require('sync-request');
-// import request from 'request';
-
-
-var parser = require('xml2json');
-var MongoClient = require('mongodb').MongoClient,
-    assert = require('assert');
-
-var Buffer = require('buffer/').Buffer; // note: the trailing slash is important!
-
 /** @module Adaptor */
+import {
+  execute as commonExecute,
+  expandReferences,
+  composeNextState,
+} from 'language-common';
+
+const MongoClient = require('mongodb').MongoClient;
 
 /**
  * Execute a sequence of operations.
@@ -105,160 +19,153 @@ var Buffer = require('buffer/').Buffer; // note: the trailing slash is important
  * @param {Operations} operations - Operations to be performed.
  * @returns {Operation}
  */
-function execute() {
-  for (var _len = arguments.length, operations = Array(_len), _key = 0; _key < _len; _key++) {
-    operations[_key] = arguments[_key];
-  }
-
-  var initialState = {
+export function execute(...operations) {
+  const initialState = {
     references: [],
-    data: null
+    data: null,
   };
 
-  return function (state) {
-    return _languageCommon.execute.apply(undefined, operations)(_extends({}, initialState, state));
+  return (state) => {
+    return commonExecute(
+      connect,
+      ...operations,
+      disconnect
+    )({ ...initialState, ...state });
   };
 }
 
 /**
- * Make a GET request and POST the response somewhere else without failing.
+ * Connects to a mongoDb instance
+ * @example
+ *  connect(state)
+ * @function
+ * @param {State} state - Runtime state.
+ * @returns {State}
  */
-function fetch2016(params) {
+function connect(state) {
+  const { clusterUrl, username, password } = state.configuration;
 
-  var insertDocuments = function insertDocuments(db, jsonArray, callback) {
-    // Get the documents collection
-    var collection = db.collection('simce_2016_school_records');
-    // Insert some documents
-    collection.insertMany(jsonArray, function (err, result) {
-      assert.equal(err, null);
-      console.log(result.insertedCount);
-      callback(result);
-    });
-  };
+  const uri = `mongodb+srv://${encodeURIComponent(
+    username
+  )}:${encodeURIComponent(
+    password
+  )}@${clusterUrl}/test?retryWrites=true&w=majority`;
+  console.log('Connection uri: ' + uri);
 
-  return function (state) {
-    var _expandReferences = (0, _languageCommon.expandReferences)(params)(state),
-        codes = _expandReferences.codes;
+  const client = new MongoClient(uri, { useNewUrlParser: true });
 
-    var _state$configuration = state.configuration,
-        endpoint = _state$configuration.endpoint,
-        salt = _state$configuration.salt,
-        mongoConnectionUrl = _state$configuration.mongoConnectionUrl;
-
-
-    var baseUrl = "http://www.simce.cl";
-	//*% Remove this
-
-    var schools = [];
-	//*% Remove this
-
-    codes.forEach(function (code) {
-      // var code = element;
-      //*% Modify this 'ficha'- which is clearly specific to Chile. 
-	  var secretEndpoint = endpoint + "ficha-" + code + "_" + (0, _resumenMin.resumen)(salt + _base2.default.encode("ficha-" + code + ".json")) + ".json";
-      var url = (0, _url.resolve)(baseUrl + '/', secretEndpoint);
-      console.log("Performing a GET on URL: " + url);
-
-      try {
-        var res = request('GET', url);
-        var jsonBody = JSON.parse(res.getBody().toString('utf8'));
-        console.log("Successfully fetched RBD " + code);
-        //*% Remove the mention of schools below. What should replace it? 
-		schools.push(jsonBody);
-        console.log(JSON.stringify(jsonBody, null, 2));
-      } catch (e) {
-        console.log("Failed to fetch RBD " + code);
+  return new Promise((resolve, reject) => {
+    client.connect((err) => {
+      if (err) {
+        reject(err);
+      } else {
+        console.log('Connected successfully to server');
+        resolve({ ...state, client });
       }
     });
-
-    // Connection URL
-    var url = mongoConnectionUrl;
-
-    // Use connect method to connect to the server
-    MongoClient.connect(url, {
-      // server: {
-      // socketOptions: {
-      connectTimeoutMS: 360000,
-      socketTimeoutMS: 360000
-      // }
-      // }
-    }, function (err, db) {
-      assert.equal(null, err);
-      console.log("Connected successfully to server");
-
-      insertDocuments(db, schools, function () {
-        db.close();
-      });
-    });
-  };
-};
+  });
+}
 
 /**
- * Make a GET request and POST the response somewhere else without failing.
+ * Removes connection from the state.
+ * @example
+ *  disconnect(state)
+ * @function
+ * @param {State} state
+ * @returns {State}
  */
-//*% fetch2015 needs to be replaced. But by what?
- function fetch2015(params) {
+function disconnect(state) {
+  state.client.close();
+  delete state.client;
+  return state;
+}
 
-  var insertDocuments = function insertDocuments(db, jsonArray, callback) {
-    // Get the documents collection
-    var collection = db.collection('simce_2015_school_records');
-    // Insert some documents
-    collection.insertMany(jsonArray, function (err, result) {
-      assert.equal(err, null);
-      console.log(result.insertedCount);
-      callback(result);
-    });
-  };
+/**
+ * Inserts documents into a mongoDb collection
+ * @example
+ *  insertDocuments({
+ *    database: 'str',
+ *    collection: 'kids',
+ *    documents: [1,2,3]
+ *   });
+ * @function
+ * @param {object} params - Configuration for mongo
+ * @returns {State}
+ */
+export function insertDocuments(params) {
+  return (state) => {
+    const { client } = state;
 
-  return function (state) {
-    var _expandReferences2 = (0, _languageCommon.expandReferences)(params)(state),
-        codes = _expandReferences2.codes;
+    const { database, collection, documents, callback } = expandReferences(
+      params
+    )(state);
 
-    var _state$configuration2 = state.configuration,
-        endpoint = _state$configuration2.endpoint,
-        salt = _state$configuration2.salt,
-        mongoConnectionUrl = _state$configuration2.mongoConnectionUrl;
+    const db = client.db(database);
+    const mCollection = db.collection(collection);
 
-
-    var baseUrl = "http://www.simce.cl";
-
-    var schools = [];
-
-    codes.forEach(function (code) {
-      // var code = element;
-      var secretEndpoint = endpoint + "ficha_est-" + code + "_" + (0, _resumenMin.resumen)(salt + _base2.default.encode("ficha-" + code + ".xml")) + ".xml";
-      var url = (0, _url.resolve)(baseUrl + '/', secretEndpoint);
-      console.log("Performing a GET on URL: " + url);
-
-      try {
-        var res = request('GET', url);
-        var jsonBody = JSON.parse(parser.toJson(res.getBody()));
-        console.log("Successfully fetched RBD " + code);
-        schools.push(jsonBody.establecimientos.estab);
-        console.log(jsonBody);
-      } catch (e) {
-        console.log("Failed to fetch RBD " + code);
-      }
-    });
-
-    // Connection URL
-    var url = mongoUrl;
-
-    // Use connect method to connect to the server
-    MongoClient.connect(url, {
-      // server: {
-      // socketOptions: {
-      connectTimeoutMS: 360000,
-      socketTimeoutMS: 360000
-      // }
-      // }
-    }, function (err, db) {
-      assert.equal(null, err);
-      console.log("Connected successfully to server");
-
-      insertDocuments(db, schools, function () {
-        db.close();
+    return new Promise((resolve, reject) => {
+      mCollection.insertMany(documents, (err, result) => {
+        if (err) {
+          reject(err);
+        } else {
+          console.log(
+            `Inserted ${documents.length} documents into the collection`
+          );
+          const nextState = composeNextState(state, result);
+          if (callback) resolve(callback(nextState));
+          resolve(nextState);
+        }
       });
     });
   };
-};
+}
+
+/**
+ * Find documents in a mongoDb collection
+ * @example
+ *  findDocuments({
+ *    database: 'str',
+ *    collection: 'cases',
+ *    query: {a:3}
+ *   });
+ * @function
+ * @param {object} params - Configuration for mongo
+ * @returns {State}
+ */
+export function findDocuments(params) {
+  return (state) => {
+    const { client } = state;
+
+    const { database, collection, query, callback } = expandReferences(params)(
+      state
+    );
+
+    const db = client.db(database);
+    const mCollection = db.collection(collection);
+
+    return new Promise((resolve, reject) => {
+      mCollection.find(query).toArray((err, docs) => {
+        if (err) {
+          reject(err);
+        } else {
+          console.log(`Found ${docs.length} documents in the collection`);
+          const nextState = composeNextState(state, docs);
+          if (callback) resolve(callback(nextState));
+          resolve(nextState);
+        }
+      });
+    });
+  };
+}
+
+export {
+  field,
+  fields,
+  sourceValue,
+  alterState,
+  each,
+  merge,
+  dataPath,
+  dataValue,
+  lastReferenceValue,
+} from 'language-common';
