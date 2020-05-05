@@ -1,6 +1,6 @@
 {
   "name": "language-mongodb",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "A language package for working with MongoDb",
   "main": "lib/index.js",
   "scripts": {

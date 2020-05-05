@@ -5,15 +5,16 @@ import {
   composeNextState,
 } from 'language-common';
 
-const MongoClient = require('mongodb').MongoClient;
+// const MongoClient = require('mongodb').MongoClient;
+import { MongoClient } from 'mongodb';
 
 /**
  * Execute a sequence of operations.
  * Wraps `language-common/execute`, and prepends initial state for http.
  * @example
  * execute(
- *   create('foo'),
- *   delete('bar')
+ *   insertDocuments(params),
+ *   findDocuments(params)
  * )(state)
  * @constructor
  * @param {Operations} operations - Operations to be performed.

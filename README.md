@@ -43,7 +43,7 @@ insertDocuments({
   database: 'yourDb',
   collection: 'yourCollection',
   query: (state) => {
-    name: 'stu';
+    return { name: 'stu' };
   },
   // callback: (state) => state, // optional
 });
