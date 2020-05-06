@@ -51,7 +51,6 @@ function connect(state) {
   )}:${encodeURIComponent(
     password
   )}@${clusterUrl}/test?retryWrites=true&w=majority`;
-  console.log('Connection uri: ' + uri);
 
   const client = new MongoClient(uri, { useNewUrlParser: true });
 
