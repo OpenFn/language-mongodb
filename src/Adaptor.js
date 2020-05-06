@@ -107,10 +107,12 @@ export function insertDocuments(params) {
       mCollection.insertMany(documents, (err, result) => {
         if (err) {
           reject(err);
+          state.client.close();
         } else {
           console.log(
             `Inserted ${documents.length} documents into the collection`
           );
+          console.log(JSON.stringify(result, null, 2));
           const nextState = composeNextState(state, result);
           if (callback) resolve(callback(nextState));
           resolve(nextState);
@@ -147,13 +149,71 @@ export function findDocuments(params) {
       mCollection.find(query).toArray((err, docs) => {
         if (err) {
           reject(err);
+          state.client.close();
         } else {
           console.log(`Found ${docs.length} documents in the collection`);
+          console.log(JSON.stringify(result, null, 2));
           const nextState = composeNextState(state, docs);
           if (callback) resolve(callback(nextState));
           resolve(nextState);
         }
       });
+    });
+  };
+}
+
+/**
+ * Updates document (optionally upserting) into a mongoDb collection
+ * @example
+ *  updateDocuments({
+ *    database: 'str',
+ *    collection: 'animals',
+ *    filter: { type: 'fuzzy' },
+ *    changes: { kind: 'soft' },
+ *    options: { upsert: true }
+ *   });
+ * @function
+ * @param {object} params - Configuration for mongo
+ * @returns {State}
+ */
+export function updateDocument(params) {
+  return (state) => {
+    const { client } = state;
+
+    const {
+      database,
+      collection,
+      filter,
+      changes,
+      options,
+      callback,
+    } = expandReferences(params)(state);
+
+    const db = client.db(database);
+    const mCollection = db.collection(collection);
+
+    return new Promise((resolve, reject) => {
+      mCollection.updateMany(
+        filter,
+        { $set: changes },
+        options,
+        (err, result) => {
+          if (err) {
+            reject(err);
+            state.client.close();
+          } else {
+            console.log(
+              `Updated a document matching ${JSON.stringify(
+                filter
+              )} in the collection.`
+            );
+            console.log(JSON.stringify(result, null, 2));
+            const nextState = composeNextState(state, result);
+            if (callback) resolve(callback(nextState));
+            resolve(nextState);
+          }
+        }
+      );
     });
   };
 }
