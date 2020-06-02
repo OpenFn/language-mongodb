@@ -96,29 +96,34 @@ export function insertDocuments(params) {
   return (state) => {
     const { client } = state;
 
-    const { database, collection, documents, callback } = expandReferences(
-      params
-    )(state);
+    try {
+      const { database, collection, documents, callback } = expandReferences(
+        params
+      )(state);
 
-    const db = client.db(database);
-    const mCollection = db.collection(collection);
+      const db = client.db(database);
+      const mCollection = db.collection(collection);
 
-    return new Promise((resolve, reject) => {
-      mCollection.insertMany(documents, (err, result) => {
-        if (err) {
-          reject(err);
-          state.client.close();
-        } else {
-          console.log(
-            `Inserted ${documents.length} documents into the collection`
-          );
-          console.log(JSON.stringify(result, null, 2));
-          const nextState = composeNextState(state, result);
-          if (callback) resolve(callback(nextState));
-          resolve(nextState);
-        }
+      return new Promise((resolve, reject) => {
+        mCollection.insertMany(documents, (err, result) => {
+          if (err) {
+            reject(err);
+            state.client.close();
+          } else {
+            console.log(
+              `Inserted ${documents.length} documents into the collection`
+            );
+            console.log(JSON.stringify(result, null, 2));
+            const nextState = composeNextState(state, result);
+            if (callback) resolve(callback(nextState));
+            resolve(nextState);
+          }
+        });
       });
-    });
+    } catch (error) {
+      state.client.close();
+      throw error;
+    }
   };
 }
 
@@ -138,27 +143,32 @@ export function findDocuments(params) {
   return (state) => {
     const { client } = state;
 
-    const { database, collection, query, callback } = expandReferences(params)(
-      state
-    );
+    try {
+      const { database, collection, query, callback } = expandReferences(
+        params
+      )(state);
 
-    const db = client.db(database);
-    const mCollection = db.collection(collection);
+      const db = client.db(database);
+      const mCollection = db.collection(collection);
 
-    return new Promise((resolve, reject) => {
-      mCollection.find(query).toArray((err, docs) => {
-        if (err) {
-          reject(err);
-          state.client.close();
-        } else {
-          console.log(`Found ${docs.length} documents in the collection`);
-          console.log(JSON.stringify(result, null, 2));
-          const nextState = composeNextState(state, docs);
-          if (callback) resolve(callback(nextState));
-          resolve(nextState);
-        }
+      return new Promise((resolve, reject) => {
+        mCollection.find(query).toArray((err, docs) => {
+          if (err) {
+            reject(err);
+            state.client.close();
+          } else {
+            console.log(`Found ${docs.length} documents in the collection`);
+            console.log(JSON.stringify(result, null, 2));
+            const nextState = composeNextState(state, docs);
+            if (callback) resolve(callback(nextState));
+            resolve(nextState);
+          }
+        });
       });
-    });
+    } catch (error) {
+      state.client.close();
+      throw error;
+    }
   };
 }
 
@@ -179,42 +189,46 @@ export function findDocuments(params) {
 export function updateDocument(params) {
   return (state) => {
     const { client } = state;
-
-    const {
-      database,
-      collection,
-      filter,
-      changes,
-      options,
-      callback,
-    } = expandReferences(params)(state);
-
-    const db = client.db(database);
-    const mCollection = db.collection(collection);
-
-    return new Promise((resolve, reject) => {
-      mCollection.updateMany(
+    try {
+      const {
+        database,
+        collection,
         filter,
-        { $set: changes },
+        changes,
         options,
-        (err, result) => {
-          if (err) {
-            reject(err);
-            state.client.close();
-          } else {
-            console.log(
-              `Updated a document matching ${JSON.stringify(
-                filter
-              )} in the collection.`
-            );
-            console.log(JSON.stringify(result, null, 2));
-            const nextState = composeNextState(state, result);
-            if (callback) resolve(callback(nextState));
-            resolve(nextState);
+        callback,
+      } = expandReferences(params)(state);
+
+      const db = client.db(database);
+      const mCollection = db.collection(collection);
+
+      return new Promise((resolve, reject) => {
+        mCollection.updateMany(
+          filter,
+          { $set: changes },
+          options,
+          (err, result) => {
+            if (err) {
+              reject(err);
+              state.client.close();
+            } else {
+              console.log(
+                `Updated a document matching ${JSON.stringify(
+                  filter
+                )} in the collection.`
+              );
+              console.log(JSON.stringify(result, null, 2));
+              const nextState = composeNextState(state, result);
+              if (callback) resolve(callback(nextState));
+              resolve(nextState);
+            }
           }
-        }
-      );
-    });
+        );
+      });
+    } catch (error) {
+      state.client.close();
+      throw error;
+    }
   };
 }
 
