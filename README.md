@@ -39,7 +39,7 @@ insertDocuments({
 ### findDocuments
 
 ```js
-insertDocuments({
+findDocuments({
   database: 'yourDb',
   collection: 'yourCollection',
   query: (state) => {
