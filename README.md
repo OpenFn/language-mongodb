@@ -8,16 +8,9 @@ Language Pack for building expressions and operations for use with MongoDB.
 
 ```json
 {
-  "configuration": {
-    "username": "something",
-    "password": "secret",
-    "clusterUrl": "yourCluster-xxxyzzz.mongodb.net"
-  },
-  "data": [
-    { "name": "stu", "age": 7 },
-    { "name": "rory", "age": 12 },
-    { "name": "santosh", "age": 21 }
-  ]
+  "username": "something",
+  "password": "secret",
+  "clusterUrl": "yourCluster-xxxyzzz.mongodb.net"
 }
 ```
 
